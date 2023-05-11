@@ -1,0 +1,72 @@
+{
+  "builder_name": null,
+  "citation": "",
+  "config_name": null,
+  "dataset_size": null,
+  "description": "",
+  "download_checksums": null,
+  "download_size": null,
+  "features": {
+    "id": {
+      "dtype": "int64",
+      "id": null,
+      "_type": "Value"
+    },
+    "sentence": {
+      "dtype": "string",
+      "id": null,
+      "_type": "Value"
+    },
+    "label": {
+      "num_classes": 2,
+      "names": [
+        "0",
+        "1"
+      ],
+      "names_file": null,
+      "id": null,
+      "_type": "ClassLabel"
+    },
+    "evidence": {
+      "docid": {
+        "dtype": "string",
+        "id": null,
+        "_type": "Value"
+      },
+      "end_sentence": {
+        "dtype": "int64",
+        "id": null,
+        "_type": "Value"
+      },
+      "end_token": {
+        "dtype": "int64",
+        "id": null,
+        "_type": "Value"
+      },
+      "start_sentence": {
+        "dtype": "int64",
+        "id": null,
+        "_type": "Value"
+      },
+      "start_token": {
+        "dtype": "int64",
+        "id": null,
+        "_type": "Value"
+      },
+      "text": {
+        "dtype": "string",
+        "id": null,
+        "_type": "Value"
+      }
+    }
+  },
+  "homepage": "",
+  "license": "",
+  "post_processed": null,
+  "post_processing_size": null,
+  "size_in_bytes": null,
+  "splits": null,
+  "supervised_keys": null,
+  "task_templates": null,
+  "version": null
+}
