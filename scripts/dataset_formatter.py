@@ -18,6 +18,8 @@ import json
 import os
 from eraserbenchmark.rationale_benchmark.utils import load_documents, load_datasets, _annotation_to_dict
 import argparse
+import pandas as pd
+from datasets import Dataset, Value, ClassLabel, Sequence
 
 
 def load_dataset_annotation(data_root):
@@ -169,6 +171,45 @@ def save_dataset_annotations_json(annotations, documents, output_file):
     return dataset
 
 
+def save_dataset_annotations_csv(annotations, documents, output_file):
+    """
+    Save the annotations(evidence part) and related sentence as a dataset in a csv file
+
+    Parameters:
+    ----------
+    annotations: list
+        The list of the annotations of the documents
+
+    documents: dict
+        The dictionary of the documents
+
+    output_file: str
+        The path to the output file
+
+    Returns:
+    -------
+    dataset: list
+        The list of the dataset
+    """
+    all_sentences, all_evidences = get_annotation_sentences_ids(annotations, documents)
+
+    # save in dataframe
+    dataset = pd.DataFrame(columns=['id', 'sentence', 'label', 'evidence'])
+    idx = 0
+    for sentences, evidences in zip(all_sentences, all_evidences):
+        for sentence, evidence in zip(sentences, evidences):
+            if evidence.docid[:3] == 'neg':
+                label = 0
+            else:
+                label = 1
+
+            dataset.loc[idx] = [idx, sentence, label, _annotation_to_dict(evidence)]
+            idx += 1
+
+    dataset.to_csv(output_file, index=False)
+    return dataset
+
+
 def save_sentences_in_txt(annotations, documents, output_file):
     """
     Save the sentences of a dataset in a txt file
@@ -193,6 +234,63 @@ def save_sentences_in_txt(annotations, documents, output_file):
                 f.write(sentence + '\n')
 
 
+# store the dataset as HuggingFace Dataset
+def save_dataset_annotations_hf(annotations, documents, output_file):
+    """
+    Save the annotations(evidence part) and related sentence as a dataset in a csv file
+
+    Parameters:
+    ----------
+    annotations: list
+        The list of the annotations of the documents
+
+    documents: dict
+        The dictionary of the documents
+
+    output_file: str
+        The path to the output file
+
+    Returns:
+    -------
+    dataset: list
+        The list of the dataset
+    """
+    all_sentences, all_evidences = get_annotation_sentences_ids(annotations, documents)
+    data = {
+        "id": [],
+        "sentence": [],
+        "label": [],
+        "evidence": []
+    }
+
+    idx = 0
+    for sentences, evidences in zip(all_sentences, all_evidences):
+        for sentence, evidence in zip(sentences, evidences):
+            if evidence.docid[:3] == 'neg':
+                label = 0
+            else:
+                label = 1
+
+            data["id"].append(idx)
+            data["sentence"].append(sentence)
+            data["label"].append(str(label))
+            data["evidence"].append(_annotation_to_dict(evidence))
+
+            idx += 1
+
+    dataset = Dataset.from_dict(data)
+
+    new_features = dataset.features.copy()
+    new_features["label"] = ClassLabel(names=["0", "1"])
+
+    # Cast the label column to ClassLabel
+    dataset = dataset.cast(new_features)
+
+    dataset.save_to_disk(output_file)
+    return dataset
+
+
+
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('--data_root', type=str, default='./movies/', help='path to the dataset folder')
@@ -201,6 +299,7 @@ def main():
                                                                             'dev, test) separate by comma')
     parser.add_argument('--save_sentences_in_txt', action='store_true', help='save sentences in files')
     parser.add_argument('--save_Dir', type=str, default='./datasets/', help='path to save the format dataset')
+    parser.add_argument('--save_type', type=str, default='json', help='save type (json, csv, Datasets)')
 
     args = parser.parse_args()
 
@@ -211,36 +310,58 @@ def main():
         os.makedirs(args.save_Dir)
 
     if args.format_all_dataset:
-        save_dataset_annotations_json(train, documents, args.save_Dir + 'movie_train.json')
-        save_dataset_annotations_json(dev, documents, args.save_Dir + 'movie_dev.json')
-        save_dataset_annotations_json(test, documents, args.save_Dir + 'movie_test.json')
+        if args.save_type == 'json':
+            save_dataset_annotations_json(train, documents, args.save_Dir + 'movie_train.json')
+            save_dataset_annotations_json(dev, documents, args.save_Dir + 'movie_dev.json')
+            save_dataset_annotations_json(test, documents, args.save_Dir + 'movie_test.json')
+        elif args.save_type == 'csv':
+            save_dataset_annotations_csv(train, documents, args.save_Dir + 'movie_train.csv')
+            save_dataset_annotations_csv(dev, documents, args.save_Dir + 'movie_dev.csv')
+            save_dataset_annotations_csv(test, documents, args.save_Dir + 'movie_test.csv')
+        elif args.save_type == 'Datasets':
+            save_dataset_annotations_hf(train, documents, args.save_Dir + 'movie_train')
+            save_dataset_annotations_hf(dev, documents, args.save_Dir + 'movie_dev')
+            save_dataset_annotations_hf(test, documents, args.save_Dir + 'movie_test')
 
         if args.save_sentences_in_txt:
             save_sentences_in_txt(train, documents, args.save_Dir + 'movie_train.txt')
             save_sentences_in_txt(dev, documents, args.save_Dir + 'movie_dev.txt')
             save_sentences_in_txt(test, documents, args.save_Dir + 'movie_test.txt')
-
     else:
-        types = args.format_dataset.split(',')
-        for t in types:
-            if t == 'train':
-                save_dataset_annotations_json(train, documents, args.save_Dir + 'movie_train.json')
+        dataset = args.format_dataset.split(',')
+        for d in dataset:
+            if d == 'train':
+                if args.save_type == 'json':
+                    save_dataset_annotations_json(train, documents, args.save_Dir + 'movie_train.json')
+                elif args.save_type == 'csv':
+                    save_dataset_annotations_csv(train, documents, args.save_Dir + 'movie_train.csv')
+                elif args.save_type == 'Datasets':
+                    save_dataset_annotations_hf(train, documents, args.save_Dir + 'movie_train')
 
                 if args.save_sentences_in_txt:
                     save_sentences_in_txt(train, documents, args.save_Dir + 'movie_train.txt')
-            elif t == 'dev':
-                save_dataset_annotations_json(dev, documents, args.save_Dir + 'movie_dev.json')
+            elif d == 'dev':
+                if args.save_type == 'json':
+                    save_dataset_annotations_json(dev, documents, args.save_Dir + 'movie_dev.json')
+                elif args.save_type == 'csv':
+                    save_dataset_annotations_csv(dev, documents, args.save_Dir + 'movie_dev.csv')
+                elif args.save_type == 'Datasets':
+                    save_dataset_annotations_hf(dev, documents, args.save_Dir + 'movie_dev')
 
                 if args.save_sentences_in_txt:
                     save_sentences_in_txt(dev, documents, args.save_Dir + 'movie_dev.txt')
-            elif t == 'test':
-                save_dataset_annotations_json(test, documents, args.save_Dir + 'movie_test.json')
+            elif d == 'test':
+                if args.save_type == 'json':
+                    save_dataset_annotations_json(test, documents, args.save_Dir + 'movie_test.json')
+                elif args.save_type == 'csv':
+                    save_dataset_annotations_csv(test, documents, args.save_Dir + 'movie_test.csv')
+                elif args.save_type == 'Datasets':
+                    save_dataset_annotations_hf(test, documents, args.save_Dir + 'movie_test')
 
                 if args.save_sentences_in_txt:
                     save_sentences_in_txt(test, documents, args.save_Dir + 'movie_test.txt')
             else:
-                raise ValueError('Type of dataset not found!')
-
+                raise ValueError('Dataset type is not correct')
 
     # document = documents['negR_000.txt']
     # get_annotation_sentences_ids_single_file(train[0], document)
