@@ -10,7 +10,8 @@ Format all datasets (train, dev, and test)
 python script/dataset_formatter.py \
   --data_root './movies/' \
   --format_all_dataset \
-  --save_sentences_in_txt
+  --save_sentences_in_txt \
+  --save_type 'Datasets'
 ```
 
 Format only the train and dev datasets
@@ -18,5 +19,6 @@ Format only the train and dev datasets
 python script/dataset_formatter.py \ 
   --data_root './movies/' \ 
   --format_dataset 'train,dev' \ 
-  --save_sentences_in_txt
+  --save_sentences_in_txt \
+  --save_type 'Datasets'
 ```
