@@ -22,7 +22,10 @@ python script/dataset_formatter.py \
   --save_sentences_in_txt \
   --save_type 'Datasets'
 ```
-### Finetuning the formatted dataset extracted from the Eraser Movie Dataset by previous step
+### Fine-tuning the formatted dataset extracted from the Eraser Movie Dataset by the previous step
+
+Before running the fine-tuning code, you need to download the pre-trained model **bert-base-cased**
+
 Examples: <br/>
 ```bash
 python run_glue.py \
